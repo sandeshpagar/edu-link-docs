@@ -24,13 +24,17 @@ const MentorDashboard = () => {
       // Fetch assigned students
       const { data: assignmentsData } = await supabase
         .from('mentor_student_assignments')
-        .select(`
-          student:profiles(id, full_name, email)
-        `)
+        .select('student_id')
         .eq('mentor_id', user.id);
 
-      if (assignmentsData) {
-        const studentIds = assignmentsData.map(a => a.student.id);
+      if (assignmentsData && assignmentsData.length > 0) {
+        const studentIds = assignmentsData.map(a => a.student_id);
+        
+        // Fetch student profiles
+        const { data: studentsData } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', studentIds);
         
         // Fetch documents for all students
         const { data: docsData } = await supabase
@@ -41,12 +45,15 @@ const MentorDashboard = () => {
         // Calculate stats
         const pendingCount = docsData?.filter(d => d.status === 'pending').length || 0;
         
-        setStudents(assignmentsData.map(a => a.student));
+        setStudents(studentsData || []);
         setStats({
-          totalStudents: assignmentsData.length,
+          totalStudents: studentsData?.length || 0,
           pendingReviews: pendingCount,
           totalDocuments: docsData?.length || 0,
         });
+      } else {
+        setStudents([]);
+        setStats({ totalStudents: 0, pendingReviews: 0, totalDocuments: 0 });
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
