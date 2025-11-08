@@ -15,12 +15,12 @@ const userSchema = z.object({
   email: z.string().email('Invalid email address'),
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  role: z.enum(['student', 'mentor']),
+  role: z.enum(['student', 'mentor', 'admin']),
 });
 
 const editUserSchema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
-  role: z.enum(['student', 'mentor']),
+  role: z.enum(['student', 'mentor', 'admin']),
 });
 
 type User = {
@@ -37,8 +37,8 @@ const AdminUsers = ({ onUpdate }: { onUpdate: () => void }) => {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [formData, setFormData] = useState({ email: '', full_name: '', password: '', role: 'student' as 'student' | 'mentor' });
-  const [editFormData, setEditFormData] = useState({ full_name: '', role: 'student' as 'student' | 'mentor' });
+  const [formData, setFormData] = useState({ email: '', full_name: '', password: '', role: 'student' as 'student' | 'mentor' | 'admin' });
+  const [editFormData, setEditFormData] = useState({ full_name: '', role: 'student' as 'student' | 'mentor' | 'admin' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
@@ -208,7 +208,7 @@ const AdminUsers = ({ onUpdate }: { onUpdate: () => void }) => {
 
   const openEditDialog = (user: User) => {
     setSelectedUser(user);
-    setEditFormData({ full_name: user.full_name, role: user.role as 'student' | 'mentor' });
+    setEditFormData({ full_name: user.full_name, role: user.role as 'student' | 'mentor' | 'admin' });
     setErrors({});
     setEditOpen(true);
   };
@@ -273,13 +273,14 @@ const AdminUsers = ({ onUpdate }: { onUpdate: () => void }) => {
               </div>
               <div>
                 <Label htmlFor="role">Role</Label>
-                <Select value={formData.role} onValueChange={(value: 'student' | 'mentor') => setFormData({ ...formData, role: value })}>
+                <Select value={formData.role} onValueChange={(value: 'student' | 'mentor' | 'admin') => setFormData({ ...formData, role: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="student">Student</SelectItem>
                     <SelectItem value="mentor">Mentor</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.role && <p className="text-sm text-destructive mt-1">{errors.role}</p>}
@@ -352,13 +353,14 @@ const AdminUsers = ({ onUpdate }: { onUpdate: () => void }) => {
             </div>
             <div>
               <Label htmlFor="edit_role">Role</Label>
-              <Select value={editFormData.role} onValueChange={(value: 'student' | 'mentor') => setEditFormData({ ...editFormData, role: value })}>
+              <Select value={editFormData.role} onValueChange={(value: 'student' | 'mentor' | 'admin') => setEditFormData({ ...editFormData, role: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="student">Student</SelectItem>
                   <SelectItem value="mentor">Mentor</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
               {errors.role && <p className="text-sm text-destructive mt-1">{errors.role}</p>}
