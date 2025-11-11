@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Download, FileText, Calendar, MessageSquare } from 'lucide-react';
+import { Download, FileText, Calendar, MessageSquare, Eye, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -29,6 +29,7 @@ interface DocumentListProps {
 
 const DocumentList = ({ documents: initialDocuments, userRole }: DocumentListProps) => {
   const [documents, setDocuments] = useState<Document[]>(initialDocuments);
+  const [previewLoading, setPreviewLoading] = useState<string | null>(null);
 
   useEffect(() => {
     setDocuments(initialDocuments);
@@ -81,6 +82,28 @@ const DocumentList = ({ documents: initialDocuments, userRole }: DocumentListPro
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const handlePreview = async (filePath: string, docId: string) => {
+    try {
+      setPreviewLoading(docId);
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(filePath);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+      
+      // Clean up after a delay
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error('Error previewing file:', error);
+      toast.error('Failed to preview file');
+    } finally {
+      setPreviewLoading(null);
+    }
+  };
 
   const handleDownload = async (filePath: string, fileName: string) => {
     try {
@@ -190,14 +213,29 @@ const DocumentList = ({ documents: initialDocuments, userRole }: DocumentListPro
                   </div>
                 )}
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleDownload(doc.file_path, doc.file_name)}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handlePreview(doc.file_path, doc.id)}
+                  disabled={previewLoading === doc.id}
+                >
+                  {previewLoading === doc.id ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Eye className="h-4 w-4 mr-2" />
+                  )}
+                  View
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleDownload(doc.file_path, doc.file_name)}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
