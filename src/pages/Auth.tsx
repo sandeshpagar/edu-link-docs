@@ -6,15 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GraduationCap, Users } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<'student' | 'mentor'>('student');
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -35,7 +33,7 @@ const Auth = () => {
         navigate('/dashboard');
       }
     } else {
-      const { error } = await signUp(email, password, fullName, role);
+      const { error } = await signUp(email, password, fullName);
       if (!error) {
         navigate('/dashboard');
       }
@@ -126,30 +124,11 @@ const Auth = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={8}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role">I am a</Label>
-                  <Select value={role} onValueChange={(v: 'student' | 'mentor') => setRole(v)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="student">
-                        <div className="flex items-center gap-2">
-                          <GraduationCap className="h-4 w-4" />
-                          <span>Student</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="mentor">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          <span>Mentor/Teacher</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Must contain at least 8 characters with uppercase, lowercase, and numbers
+                  </p>
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Creating account...' : 'Create Account'}

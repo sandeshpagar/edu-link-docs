@@ -3,6 +3,24 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { z } from 'zod';
+
+// Input validation schemas
+const signInSchema = z.object({
+  email: z.string().trim().email('Invalid email address').max(255, 'Email must be less than 255 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters').max(100, 'Password must be less than 100 characters')
+});
+
+const signUpSchema = z.object({
+  email: z.string().trim().email('Invalid email address').max(255, 'Email must be less than 255 characters'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(100, 'Password must be less than 100 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
+  fullName: z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name must be less than 100 characters')
+});
 
 interface AuthContextType {
   user: User | null;
@@ -10,7 +28,7 @@ interface AuthContextType {
   userRole: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string, role: 'student' | 'mentor') => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -73,9 +91,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
+      // Validate inputs
+      const validated = signInSchema.parse({ email, password });
+
       const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: validated.email,
+        password: validated.password,
       });
 
       if (error) throw error;
@@ -83,20 +104,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       toast.success('Signed in successfully!');
       return { error: null };
     } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        toast.error(firstError.message);
+        return { error: new Error(firstError.message) };
+      }
       toast.error(error.message || 'Failed to sign in');
       return { error };
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string, role: 'student' | 'mentor') => {
+  const signUp = async (email: string, password: string, fullName: string) => {
     try {
+      // Validate inputs
+      const validated = signUpSchema.parse({ email, password, fullName });
+
       const redirectUrl = `${window.location.origin}/`;
       
       const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: validated.email,
+        password: validated.password,
         options: {
-          data: { full_name: fullName },
+          data: { full_name: validated.fullName },
           emailRedirectTo: redirectUrl
         }
       });
@@ -104,16 +133,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       if (!data.user) throw new Error('No user returned from signup');
 
-      // Assign role to the new user
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({ user_id: data.user.id, role });
-
-      if (roleError) throw roleError;
+      // Role is now automatically assigned as 'student' by database trigger
+      // Admins can promote users through the admin panel
 
       toast.success('Account created successfully!');
       return { error: null };
     } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        toast.error(firstError.message);
+        return { error: new Error(firstError.message) };
+      }
       toast.error(error.message || 'Failed to sign up');
       return { error };
     }
